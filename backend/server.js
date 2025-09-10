@@ -29,7 +29,7 @@ app.use(express.json());
 // PATH /api/v1/auth
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
-// app.use("/api/v1/tasks", taskRoutes);
+app.use("/api/v1/tasks", taskRoutes);
 // app.use("/api/v1/reports", reportRoutes);
 
 // Start server

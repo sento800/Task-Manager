@@ -11,20 +11,15 @@ const upload = require("../middlewares/uploadMiddleware.js");
 const router = express.Router();
 
 // Auth Routes
-
-// PATH /api/v1/auth/register
 // POST register user
 router.post("/register", registerUser);
 
-// PATH /api/v1/auth/login
 // POST login user
 router.post("/login", loginUser);
 
-// PATH /api/v1/auth/profile
 // GET get user profile
 router.get("/profile", protect, getUserProfile);
 
-// PATH /api/v1/auth/profile
 // PUT update user profile
 router.put("/profile", protect, updateUserProfile);
 
