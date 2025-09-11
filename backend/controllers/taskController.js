@@ -6,6 +6,16 @@ const Task = require("../models/Task");
 // @access private
 const getDashboardData = async (req, res) => {
   try {
+    // fetch statistics
+    const totalTasks = await Task.countDocuments();
+    const pendingTask = await Task.countDocuments({ status: "Pending" });
+    const completedTask = await Task.countDocuments({ status: "Completed" });
+    const overdueTask = await Task.countDocuments({
+      status: { $ne: "Completed" },
+      dueDate: { $lt: new Date() },
+    });
+
+    // ensure all
   } catch (error) {
     res.status(500).json({
       message: "Server error",
@@ -117,11 +127,6 @@ const getTasks = async (req, res) => {
         completedTasks,
       },
     });
-
-    console.log(status);
-    res.status(200).json({
-      message: "success",
-    });
   } catch (error) {
     res.status(500).json({
       message: "Server error",
@@ -169,7 +174,7 @@ const createTask = async (req, res) => {
 };
 
 // @desc   Update task details
-// @route  PUT /api/v1/tasks/:id
+// @route  PUT /api/v1/tasks/:id/status
 // @access private
 const updateTaskStatus = async (req, res) => {
   try {
@@ -193,6 +198,7 @@ const updateTaskStatus = async (req, res) => {
     }
 
     await task.save();
+    res.json(task);
   } catch (error) {
     res.status(500).json({
       message: "Server error",
@@ -206,6 +212,45 @@ const updateTaskStatus = async (req, res) => {
 // @access private
 const updateTaskChecklist = async (req, res) => {
   try {
+    const task = await Task.findById(req.params.id);
+    const { todoChecklist } = req.body;
+
+    if (!task) {
+      res.status(404).json({ message: "Task not found" });
+    }
+
+    if (!task.assignedTo.includes(req.user._id) && req.user.role !== "admin") {
+      res.status(403).json({
+        message: "Not authorized to update checklist",
+      });
+    }
+
+    task.todoChecklist = todoChecklist;
+
+    // auto-update progress based on checklist completion
+    const completedCount = task.todoChecklist.filter(
+      (item) => item.completed
+    ).length;
+    const totalItems = task.todoChecklist.length;
+    task.progress =
+      totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
+
+    // auto-mark task as completed if all items are checked
+    if (task.progress === 100) {
+      task.status = "Completed";
+    } else if (task.progress > 0) {
+      task.status = "In Process";
+    } else {
+      task.status = "Pending";
+    }
+
+    await task.save();
+    const updatedTask = await Task.findById(req.user._id).populate(
+      "assignedTo",
+      "name email profileUrl"
+    );
+
+    res.json({ message: "Task checklist updated", task: updateTask });
   } catch (error) {
     res.status(500).json({
       message: "Server error",
